@@ -1,0 +1,45 @@
+name: Sync Main Branch
+
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN_WHATSAPP_MCP }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/lharries/whatsapp-mcp.git
+
+      - name: Fetch from upstream
+        run: |
+          git fetch upstream main
+
+      - name: Merge upstream changes
+        run: |
+          git merge upstream/main -m "Sync from upstream lharries/whatsapp-mcp" --allow-unrelated-histories || true
+
+      - name: Push to origin
+        run: |
+          git push https://x-access-token:${{ secrets.SYNC_TOKEN_WHATSAPP_MCP }}@github.com/${{ github.repository }}.git main
+
+      - name: Sync Status
+        run: |
+          echo "✅ Main branch synced successfully at $(date)"
